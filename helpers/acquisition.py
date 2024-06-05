@@ -60,7 +60,7 @@ def extract_zip(zip_path, extract_to):
         # Remove the zip file after extraction (optional)
         os.remove(zip_path)
     else:
-        print("Nothing to extract. Skipping extraction...")
+        print("Nothing to extract. Skipping...")
 
 
 def generate_dataset_splits(dataset_dir, splits):
@@ -79,7 +79,7 @@ def generate_dataset_splits(dataset_dir, splits):
     for split_name, split in splits.items():
 
         if os.path.exists(split_name):
-            print(f"Directory {split_name} already exists. Skipping split...")
+            print(f"Directory {split_name} already exists. Skipping ...")
             continue
 
         train_split, test_split, holdout_split = split
