@@ -6,7 +6,7 @@ import random
 
 from tqdm.auto import tqdm
 
-def download_dataset(url, save_path):
+def download_dataset(url, data_dir, save_path):
     """
     Download dataset from the given URL and save it to the specified path.
 
@@ -19,11 +19,13 @@ def download_dataset(url, save_path):
     """
 
     # Check if data folder already exists
-    if os.path.exists(save_path):
-        print("Data folder already exists. Skipping download.")
+    if os.path.exists(data_dir):
+        print("Data folder already exists. Skipping download...")
         return
     else:
         print("Downloading dataset...")
+        # Create the data directory if it doesn't exist
+        os.makedirs(data_dir, exist_ok=True)
         response = requests.get(url, stream=True)
         total_size = int(response.headers.get('content-length', 0))
         block_size = 1024  # 1 Kilobyte
@@ -49,10 +51,16 @@ def extract_zip(zip_path, extract_to):
     Returns:
     - None
     """
-    print("Extracting dataset...")
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_to)
-    print(f"Dataset extracted to {extract_to}")
+
+    if os.path.exists(zip_path):
+        print("Extracting dataset...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_to)
+        print(f"Dataset extracted to {extract_to}")
+        # Remove the zip file after extraction (optional)
+        os.remove(zip_path)
+    else:
+        print("Nothing to extract. Skipping extraction...")
 
 
 def generate_dataset_splits(dataset_dir, splits):
@@ -69,12 +77,17 @@ def generate_dataset_splits(dataset_dir, splits):
     """
     # Iterate over each split configuration
     for split_name, split in splits.items():
+
+        if os.path.exists(split_name):
+            print(f"Directory {split_name} already exists. Skipping split...")
+            continue
+
         train_split, test_split, holdout_split = split
         
         # Create output directories for train, test, and holdout splits
-        train_dir = os.path.join(dataset_dir, f"{split_name}/train")
-        test_dir = os.path.join(dataset_dir, f"{split_name}/test")
-        holdout_dir = os.path.join(dataset_dir, f"{split_name}/holdout")
+        train_dir = os.path.join(f"{split_name}/train")
+        test_dir = os.path.join(f"{split_name}/test")
+        holdout_dir = os.path.join(f"{split_name}/holdout")
         
         # Iterate over each class directory in the dataset
         for class_name in os.listdir(dataset_dir):
@@ -105,19 +118,19 @@ def generate_dataset_splits(dataset_dir, splits):
             for file in files[:train_split_index]:
                 src_file = os.path.join(class_dir, file)
                 dst_file = os.path.join(train_class_dir, file)
-                shutil.move(src_file, dst_file)
+                shutil.copy(src_file, dst_file)
             
             # Move files to test directory
             for file in files[train_split_index:test_split_index]:
                 src_file = os.path.join(class_dir, file)
                 dst_file = os.path.join(test_class_dir, file)
-                shutil.move(src_file, dst_file)
+                shutil.copy(src_file, dst_file)
             
             # Move files to holdout directory
             for file in files[test_split_index:]:
                 src_file = os.path.join(class_dir, file)
                 dst_file = os.path.join(holdout_class_dir, file)
-                shutil.move(src_file, dst_file)
+                shutil.copy(src_file, dst_file)
                 
     print("Dataset splits generated successfully!")
 
@@ -130,17 +143,11 @@ def create_dataset(
         extracted_dir: str = ""
     ):
     
-    # Create the data directory if it doesn't exist
-    os.makedirs(data_dir, exist_ok=True)
-    
     # Download the dataset
-    download_dataset(url, zip_path)
+    download_dataset(url, data_dir, zip_path)
     
     # Extract the downloaded zip file
     extract_zip(zip_path, data_dir)
-    
-    # Remove the zip file after extraction (optional)
-    os.remove(zip_path)
     
     # Path to the root directory of the dataset
     dataset_dir = f"{data_dir}/{extracted_dir}"

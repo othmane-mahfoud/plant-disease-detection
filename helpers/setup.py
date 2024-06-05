@@ -1,4 +1,5 @@
 import torch
+import pandas as pd
 
 def set_device() -> torch.device :
 
@@ -40,3 +41,19 @@ def set_seeds(
         torch.mps.manual_seed(seed)
     else:
         torch.manual_seed(seed)
+
+
+def set_pandas_options():
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', None)
+
+
+def reset_pandas_options():
+    pd.reset_option('display.max_rows')
+    pd.reset_option('display.max_columns')
+    pd.reset_option('display.width')
+    pd.reset_option('display.max_colwidth')
+
+
