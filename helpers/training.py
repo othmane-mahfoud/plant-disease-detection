@@ -1,9 +1,13 @@
 import torch
 import mlflow
-
+import torch.nn.functional as F
 from torcheval.metrics import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall
 from typing import Dict, List, Tuple
 from tqdm.auto import tqdm
+
+def cross_entropy_one_hot(input, target):
+    _, labels = target.max(dim=1)
+    return F.cross_entropy(input, labels)
 
 def train_step(model: torch.nn.Module, 
                dataloader: torch.utils.data.DataLoader, 
@@ -20,7 +24,7 @@ def train_step(model: torch.nn.Module,
     dataloader: Pytorch dataloader that contains the data we want our model to train on.
     loss_fn: the Pytorch function chosen to calculate loss.
     optimizer: the PyTorch optimizer chosen to minimize loss.
-    device: our traget device
+    device: our target device
 
     Returns:
     A tuple of training loss, training accuracy, precision and recall
@@ -30,9 +34,9 @@ def train_step(model: torch.nn.Module,
 
     train_loss = 0
 
-    accuracy = MulticlassAccuracy()
-    precision = MulticlassPrecision()
-    recall = MulticlassRecall()
+    accuracy = MulticlassAccuracy(num_classes=39)
+    precision = MulticlassPrecision(num_classes=39)
+    recall = MulticlassRecall(num_classes=39)
 
     # Loop through data loader data batches
     for batch, (X, y) in enumerate(dataloader):
@@ -44,7 +48,7 @@ def train_step(model: torch.nn.Module,
 
         # accumulate loss
         loss = loss_fn(y_pred, y)
-        train_loss += loss.item() 
+        train_loss += loss.item()
 
         # optimizer
         optimizer.zero_grad()
@@ -53,6 +57,10 @@ def train_step(model: torch.nn.Module,
 
         # extract predicted class
         y_pred_class = torch.argmax(torch.softmax(y_pred, dim=1), dim=1)
+        
+        # Convert one-hot encoded labels back to class indices
+        if y.ndim == 2:
+            _, y = y.max(dim=1)
 
         # calculate the classification metrics
         accuracy.update(y_pred_class, y)
@@ -93,19 +101,19 @@ def test_step(model: torch.nn.Module,
     model: PyTorch model we want to test.
     dataloader: Pytorch dataloader that contains the data we want our model to tested on.
     loss_fn: the Pytorch function chosen to calculate loss.
-    device: our traget device
+    device: our target device
 
     Returns:
     A tuple of testing loss, testing accuracy, precision and recall
     """
     # setup: eval mode and initialize loss and metrics
-    model.eval() 
+    model.eval()
 
     test_loss = 0
     
-    accuracy = MulticlassAccuracy()
-    precision = MulticlassPrecision()
-    recall = MulticlassRecall()
+    accuracy = MulticlassAccuracy(num_classes=39)
+    precision = MulticlassPrecision(num_classes=39)
+    recall = MulticlassRecall(num_classes=39)
 
     # turn on inference context manager
     with torch.inference_mode():
@@ -121,8 +129,12 @@ def test_step(model: torch.nn.Module,
             loss = loss_fn(test_pred_logits, y)
             test_loss += loss.item()
             
-            # extrat predictions
+            # extract predictions
             y_pred_class = test_pred_logits.argmax(dim=1)
+
+            # Convert one-hot encoded labels back to class indices
+            if y.ndim == 2:
+                _, y = y.max(dim=1)
 
             # calculate the classification metrics
             accuracy.update(y_pred_class, y)
@@ -138,12 +150,13 @@ def test_step(model: torch.nn.Module,
     test_rec = recall.compute()
 
     # log metrics to mlflow
-    mlflow.log_metric("train_loss", f"{test_loss:2f}")
-    mlflow.log_metric("train_accuracy", f"{test_acc:2f}")
-    mlflow.log_metric("train_precision", f"{test_prec:2f}")
-    mlflow.log_metric("train_recall", f"{test_rec:2f}")
+    mlflow.log_metric("test_loss", f"{test_loss:2f}")
+    mlflow.log_metric("test_accuracy", f"{test_acc:2f}")
+    mlflow.log_metric("test_precision", f"{test_prec:2f}")
+    mlflow.log_metric("test_recall", f"{test_rec:2f}")
 
     return test_loss, test_acc, test_prec, test_rec
+
 
 
 # Add writer parameter to train()
