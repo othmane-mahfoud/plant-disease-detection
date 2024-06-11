@@ -161,14 +161,15 @@ def test_step(model: torch.nn.Module,
 
 # Add writer parameter to train()
 def train(model: torch.nn.Module, 
-          train_dataloader: torch.utils.data.DataLoader, 
-          test_dataloader: torch.utils.data.DataLoader, 
-          optimizer: torch.optim.Optimizer,
-          loss_fn: torch.nn.Module,
-          epochs: int,
-          device: torch.device, 
-          writer: torch.utils.tensorboard.writer.SummaryWriter # new parameter to take in a writer
-          ) -> Dict[str, List]:
+    train_dataloader: torch.utils.data.DataLoader, 
+    test_dataloader: torch.utils.data.DataLoader, 
+    optimizer: torch.optim.Optimizer,
+    loss_fn: torch.nn.Module,
+    epochs: int,
+    device: torch.device, 
+    writer_local: torch.utils.tensorboard.writer.SummaryWriter, 
+    writer_drive: torch.utils.tensorboard.writer.SummaryWriter
+) -> Dict[str, List]:
     """Trains and tests a PyTorch model.
 
     Passes a target PyTorch models through train_step() and test_step()
@@ -249,25 +250,42 @@ def train(model: torch.nn.Module,
         results["test_recall"].append(test_rec)
 
         # log results to SummaryWriter
-        if writer:
-            writer.add_scalars(main_tag="Loss", 
+        if writer_local:
+            writer_local.add_scalars(main_tag="Loss", 
                                tag_scalar_dict={"train_loss": train_loss,
                                                 "test_loss": test_loss},
                                global_step=epoch)
-            writer.add_scalars(main_tag="Accuracy", 
+            writer_local.add_scalars(main_tag="Accuracy", 
                                tag_scalar_dict={"train_accuracy": train_acc,
                                                 "test_accuracy": test_acc}, 
                                global_step=epoch)
-            writer.add_scalars(main_tag="Precision", 
+            writer_local.add_scalars(main_tag="Precision", 
                                tag_scalar_dict={"train_precision": train_prec,
                                                 "test_precision": test_prec},
                                global_step=epoch)
-            writer.add_scalars(main_tag="Recall", 
+            writer_local.add_scalars(main_tag="Recall", 
                                tag_scalar_dict={"train_recall": train_rec,
                                                 "test_recall": test_rec},
                                global_step=epoch)
-            writer.close()
-        else:
-            pass
+            writer_local.close()
+        
+        if writer_drive:
+            writer_drive.add_scalars(main_tag="Loss", 
+                               tag_scalar_dict={"train_loss": train_loss,
+                                                "test_loss": test_loss},
+                               global_step=epoch)
+            writer_drive.add_scalars(main_tag="Accuracy", 
+                               tag_scalar_dict={"train_accuracy": train_acc,
+                                                "test_accuracy": test_acc}, 
+                               global_step=epoch)
+            writer_drive.add_scalars(main_tag="Precision", 
+                               tag_scalar_dict={"train_precision": train_prec,
+                                                "test_precision": test_prec},
+                               global_step=epoch)
+            writer_drive.add_scalars(main_tag="Recall", 
+                               tag_scalar_dict={"train_recall": train_rec,
+                                                "test_recall": test_rec},
+                               global_step=epoch)
+            writer_drive.close()
 
     return results
