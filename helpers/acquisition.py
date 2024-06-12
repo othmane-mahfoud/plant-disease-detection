@@ -80,7 +80,7 @@ def extract_zip(zip_path, extract_to):
         print("Nothing to extract. Skipping...")
 
 
-def generate_dataset_splits(dataset_dir, splits):
+def generate_dataset_splits(data_dir, extracted_dir, splits):
     """
     Generate multiple dataset folders with different splits from the original dataset.
 
@@ -92,6 +92,10 @@ def generate_dataset_splits(dataset_dir, splits):
     Returns:
     - None
     """
+
+    # Path to the root directory of the dataset
+    dataset_dir = f"{data_dir}/{extracted_dir}"
+
     # Iterate over each split configuration
     for split_name, split in splits.items():
 
@@ -99,55 +103,63 @@ def generate_dataset_splits(dataset_dir, splits):
             print(f"Directory {split_name} already exists. Skipping ...")
             continue
 
-        train_split, test_split, holdout_split = split
-        
-        # Create output directories for train, test, and holdout splits
-        train_dir = os.path.join(f"{split_name}/train")
-        test_dir = os.path.join(f"{split_name}/test")
-        holdout_dir = os.path.join(f"{split_name}/holdout")
-        
-        # Iterate over each class directory in the dataset
-        for class_name in os.listdir(dataset_dir):
-            class_dir = os.path.join(dataset_dir, class_name)
+        elif os.path.exists(f"{data_dir}/{split_name}"):
+            print(f"Copying directory {split_name} from drive...")
+            src_dir = os.path.join(data_dir, split_name)
+            shutil.copytree(src_dir, split_name)
+
+        else:
+            print(f"Generating {split_name}...")
+
+            train_split, test_split, holdout_split = split
             
-            # Skip if not a directory
-            if not os.path.isdir(class_dir):
-                continue
+            # Create output directories for train, test, and holdout splits
+            train_dir = os.path.join(f"{split_name}/train")
+            test_dir = os.path.join(f"{split_name}/test")
+            holdout_dir = os.path.join(f"{split_name}/holdout")
             
-            # List all files in the class directory
-            files = os.listdir(class_dir)
-            random.shuffle(files)
+            # Iterate over each class directory in the dataset
+            for class_name in os.listdir(dataset_dir):
+                class_dir = os.path.join(dataset_dir, class_name)
                 
-            # Calculate the split index
-            train_split_index = int(len(files) * train_split)
-            test_split_index = train_split_index + int(len(files) * test_split)
-            
-            # Create class directories in train, test, and holdout directories
-            train_class_dir = os.path.join(train_dir, class_name)
-            test_class_dir = os.path.join(test_dir, class_name)
-            holdout_class_dir = os.path.join(holdout_dir, class_name)
-            
-            os.makedirs(train_class_dir, exist_ok=True)
-            os.makedirs(test_class_dir, exist_ok=True)
-            os.makedirs(holdout_class_dir, exist_ok=True)
-            
-            # Move files to train directory
-            for file in files[:train_split_index]:
-                src_file = os.path.join(class_dir, file)
-                dst_file = os.path.join(train_class_dir, file)
-                shutil.copy(src_file, dst_file)
-            
-            # Move files to test directory
-            for file in files[train_split_index:test_split_index]:
-                src_file = os.path.join(class_dir, file)
-                dst_file = os.path.join(test_class_dir, file)
-                shutil.copy(src_file, dst_file)
-            
-            # Move files to holdout directory
-            for file in files[test_split_index:]:
-                src_file = os.path.join(class_dir, file)
-                dst_file = os.path.join(holdout_class_dir, file)
-                shutil.copy(src_file, dst_file)
+                # Skip if not a directory
+                if not os.path.isdir(class_dir):
+                    continue
+                
+                # List all files in the class directory
+                files = os.listdir(class_dir)
+                random.shuffle(files)
+                    
+                # Calculate the split index
+                train_split_index = int(len(files) * train_split)
+                test_split_index = train_split_index + int(len(files) * test_split)
+                
+                # Create class directories in train, test, and holdout directories
+                train_class_dir = os.path.join(train_dir, class_name)
+                test_class_dir = os.path.join(test_dir, class_name)
+                holdout_class_dir = os.path.join(holdout_dir, class_name)
+                
+                os.makedirs(train_class_dir, exist_ok=True)
+                os.makedirs(test_class_dir, exist_ok=True)
+                os.makedirs(holdout_class_dir, exist_ok=True)
+                
+                # Move files to train directory
+                for file in files[:train_split_index]:
+                    src_file = os.path.join(class_dir, file)
+                    dst_file = os.path.join(train_class_dir, file)
+                    shutil.copy(src_file, dst_file)
+                
+                # Move files to test directory
+                for file in files[train_split_index:test_split_index]:
+                    src_file = os.path.join(class_dir, file)
+                    dst_file = os.path.join(test_class_dir, file)
+                    shutil.copy(src_file, dst_file)
+                
+                # Move files to holdout directory
+                for file in files[test_split_index:]:
+                    src_file = os.path.join(class_dir, file)
+                    dst_file = os.path.join(holdout_class_dir, file)
+                    shutil.copy(src_file, dst_file)
                 
     print("Dataset splits generated successfully!")
 

@@ -1,5 +1,4 @@
 import torch
-import mlflow
 import torch.nn.functional as F
 from torcheval.metrics import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall
 from typing import Dict, List, Tuple
@@ -75,12 +74,6 @@ def train_step(model: torch.nn.Module,
     train_prec = precision.compute()
     train_rec = recall.compute()
 
-    # log metrics to mlflow
-    mlflow.log_metric("train_loss", f"{train_loss:2f}")
-    mlflow.log_metric("train_accuracy", f"{train_acc:2f}")
-    mlflow.log_metric("train_precision", f"{train_prec:2f}")
-    mlflow.log_metric("train_recall", f"{train_rec:2f}")
-
     # reset metrics
     accuracy.reset()
     precision.reset()
@@ -148,12 +141,6 @@ def test_step(model: torch.nn.Module,
     test_acc = accuracy.compute()
     test_prec = precision.compute()
     test_rec = recall.compute()
-
-    # log metrics to mlflow
-    mlflow.log_metric("test_loss", f"{test_loss:2f}")
-    mlflow.log_metric("test_accuracy", f"{test_acc:2f}")
-    mlflow.log_metric("test_precision", f"{test_prec:2f}")
-    mlflow.log_metric("test_recall", f"{test_rec:2f}")
 
     return test_loss, test_acc, test_prec, test_rec
 
