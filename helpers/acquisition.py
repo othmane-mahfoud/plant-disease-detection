@@ -6,6 +6,23 @@ import random
 
 from tqdm.auto import tqdm
 
+
+def datasets_exist_in_drive(drive_dir, splits):
+    for split_name in splits.keys():
+        split_dir = os.path.join(drive_dir, split_name)
+        if not os.path.exists(split_dir):
+            return False
+    return True
+
+
+def copy_datasets_from_drive(drive_dir, local_dir, splits):
+    for split_name in splits.keys():
+        src_dir = os.path.join(drive_dir, split_name)
+        dest_dir = os.path.join(local_dir, split_name)
+        shutil.copytree(src_dir, dest_dir)
+        print(f"Copied {src_dir} to {dest_dir}")
+
+
 def download_dataset(url, data_dir, save_path):
     """
     Download dataset from the given URL and save it to the specified path.
