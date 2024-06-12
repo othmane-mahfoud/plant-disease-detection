@@ -182,4 +182,4 @@ def create_dataset(
     dataset_dir = f"{data_dir}/{extracted_dir}"
     
     # Split the dataset according to the splits specified
-    generate_dataset_splits(dataset_dir, splits)
+    generate_dataset_splits(data_dir, extracted_dir, splits)
