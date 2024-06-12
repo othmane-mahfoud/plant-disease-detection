@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torcheval.metrics import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall
 from typing import Dict, List, Tuple
 from tqdm.auto import tqdm
+from torch.optim.lr_scheduler import StepLR
 
 def cross_entropy_one_hot(input, target):
     _, labels = target.max(dim=1)
@@ -155,7 +156,8 @@ def train(model: torch.nn.Module,
     epochs: int,
     device: torch.device, 
     writer_local: torch.utils.tensorboard.writer.SummaryWriter, 
-    writer_drive: torch.utils.tensorboard.writer.SummaryWriter
+    writer_drive: torch.utils.tensorboard.writer.SummaryWriter,
+    scheduler: torch.optim.lr_scheduler._LRScheduler = None
 ) -> Dict[str, List]:
     """Trains and tests a PyTorch model.
 
@@ -274,5 +276,9 @@ def train(model: torch.nn.Module,
                                                 "test_recall": test_rec},
                                global_step=epoch)
             writer_drive.close()
+        
+        # Step the scheduler
+        if scheduler:
+            scheduler.step()
 
     return results
