@@ -57,17 +57,23 @@ def save_model(model: torch.nn.Module,
     model_name: the name under which you want your model to be saved must end in ".pth"
     """
     # Local directory
-    target_dir_path_local = Path(target_dir)
-    target_dir_path_local.mkdir(parents=True, exist_ok=True)
-    save_path_local = target_dir_path_local / model_name
+    try:
+        target_dir_path_local = Path(target_dir)
+        target_dir_path_local.mkdir(parents=True, exist_ok=True)
+        save_path_local = target_dir_path_local / model_name
+        torch.save(obj=model.state_dict(), f=save_path_local)
+        print(f"[INFO] Model saved to: {save_path_local}")
+    except:
+        print("[INFO] Could not save locally")
+        pass
 
     # Google Drive directory
-    target_dir_path_drive = Path(f"/content/drive/MyDrive/plant-disease-detection/{target_dir}")
-    target_dir_path_drive.mkdir(parents=True, exist_ok=True)
-    save_path_drive = target_dir_path_drive / model_name
-
-    # Save the model state_dict() to both locations
-    torch.save(obj=model.state_dict(), f=save_path_local)
-    torch.save(obj=model.state_dict(), f=save_path_drive)
-    
-    print(f"[INFO] Model saved to: {save_path_local} and {save_path_drive}")
+    try:
+        target_dir_path_drive = Path(f"/content/drive/MyDrive/plant-disease-detection/{target_dir}")
+        target_dir_path_drive.mkdir(parents=True, exist_ok=True)
+        save_path_drive = target_dir_path_drive / model_name
+        torch.save(obj=model.state_dict(), f=save_path_drive)
+        print(f"[INFO] Model saved to: {save_path_drive}")
+    except:
+        print("[INFO] Could not save to drive")
+        pass

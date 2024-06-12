@@ -251,20 +251,20 @@ def objective(trial, train_dataloader, test_dataloader):
     device = set_device()
 
     # Hyperparameters to optimize
-    num_blocks = trial.suggest_int('num_blocks', 3, 4)
-    lr = trial.suggest_loguniform('lr', 1e-5, 1e-2)
     optimizer_name = trial.suggest_categorical('optimizer', ['Adam', 'SGD'])
+    lr = trial.suggest_loguniform('lr', 1e-5, 1e-2)
+    dropout_proba = trial.suggest_float("dropout_proba", 0.2, 0.5)
 
     # Create model
-    model = HybridModel(device=device, num_blocks=num_blocks, out_features=39).to(device)
+    model = HybridModel(device=device, out_features=39, dropout_proba=dropout_proba).to(device)
 
     # Select optimizer
     if optimizer_name == 'Adam':
-        optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.0001)
+        optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.0001) # I added weight decay here to prevent overfitting
     else:
         optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=0.0001)
 
-    scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=10, gamma=0.1) # learning rate scheduler
 
     # Define loss function
     loss_fn = nn.CrossEntropyLoss()
@@ -276,7 +276,7 @@ def objective(trial, train_dataloader, test_dataloader):
         test_dataloader=test_dataloader,
         optimizer=optimizer,
         loss_fn=loss_fn,
-        epochs=10,
+        epochs=5,
         device=device,
         scheduler=scheduler
     )
