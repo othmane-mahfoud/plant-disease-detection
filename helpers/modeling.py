@@ -46,31 +46,34 @@ class AttentionBlock(nn.Module):
         return x
 
 class HybridModel(nn.Module):
-    def __init__(self, device, out_features=39):
+    def __init__(self, device, num_blocks=3, out_features=39):
         super(HybridModel, self).__init__()
         # set device
         self.device = device
 
         # Convolutional blocks
-        self.conv1 = ConvBlock(3, 32, kernel_size=3, stride=2, padding=1)
-        self.conv2 = ConvBlock(32, 64, kernel_size=3, stride=2, padding=1)
-        self.conv3 = ConvBlock(64, 128, kernel_size=3, stride=2, padding=1)
+        self.conv_blocks = nn.ModuleList()
+        in_channels = 3
+        out_channels = 32
+        for i in range(num_blocks):
+            self.conv_blocks.append(ConvBlock(in_channels, out_channels, kernel_size=3, stride=2, padding=1))
+            in_channels = out_channels
+            out_channels *= 2
 
         # Flatten to prepare for transformer
         self.flatten = nn.Flatten(start_dim=2)
         
         # Attention blocks
-        self.attn1 = AttentionBlock(dim=128, num_heads=4)
-        self.attn2 = AttentionBlock(dim=128, num_heads=4)
+        self.attn1 = AttentionBlock(dim=in_channels, num_heads=4)
+        self.attn2 = AttentionBlock(dim=in_channels, num_heads=4)
 
         # Classification head
-        self.fc = nn.Linear(128 * 28 * 28, out_features)  # Adjust based on input image size and architecture
+        self.fc = nn.Linear(in_channels * 28 * 28, out_features)
 
     def forward(self, x):
         x = x.to(self.device)
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
+        for conv in self.conv_blocks:
+            x = conv(x)
 
         # Prepare for attention
         B, C, H, W = x.shape
@@ -84,6 +87,7 @@ class HybridModel(nn.Module):
 
         x = self.fc(x)
         return x
+
 
 def create_effnetb0(device, out_features):
     # Get weights and model and send to target device
