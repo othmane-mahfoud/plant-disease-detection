@@ -276,7 +276,7 @@ def objective(trial, train_dataloader, test_dataloader):
         test_dataloader=test_dataloader,
         optimizer=optimizer,
         loss_fn=loss_fn,
-        epochs=5,
+        epochs=10,
         device=device,
         scheduler=scheduler
     )
