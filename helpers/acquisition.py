@@ -103,7 +103,7 @@ def generate_dataset_splits(data_dir, extracted_dir, splits):
             print(f"Directory {split_name} already exists. Skipping ...")
             continue
 
-        elif os.path.exists(f"{data_dir}/{split_name}"):
+        elif os.path.exists(f"/content/drive/MyDrive/plant-disease-detection/{split_name}"):
             print(f"Copying directory {split_name} from drive...")
             src_dir = os.path.join(data_dir, split_name)
             shutil.copytree(src_dir, split_name)
