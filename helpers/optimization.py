@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from torch.optim.lr_scheduler import StepLR
-from helpers.modeling import HybridModel
+from helpers.modeling import create_base_model, create_hybrid
 from helpers.utils import save_model
 from helpers.setup import set_device
 from torcheval.metrics import MulticlassAccuracy, MulticlassPrecision, MulticlassRecall
@@ -157,7 +157,8 @@ def train(model: torch.nn.Module,
     loss_fn: torch.nn.Module,
     epochs: int,
     device: torch.device, 
-    scheduler: torch.optim.lr_scheduler._LRScheduler = None
+    scheduler: torch.optim.lr_scheduler._LRScheduler = None,
+    trial
 ) -> Dict[str, List]:
     """Trains and tests a PyTorch model.
 
@@ -242,6 +243,12 @@ def train(model: torch.nn.Module,
         if scheduler:
             scheduler.step()
 
+        # For pruning (stops trial early if not promising)
+        trial.report(results["test_accuracy"][-1].item(), epoch)
+        # Handle pruning based on the intermediate value.
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
+
     return results
 
 
@@ -256,7 +263,8 @@ def objective(trial, train_dataloader, test_dataloader):
     dropout_proba = trial.suggest_float("dropout_proba", 0.2, 0.5)
 
     # Create model
-    model = HybridModel(device=device, out_features=39, dropout_proba=dropout_proba).to(device)
+    model = create_hybrid(device=device, out_features=39, dropout_proba=dropout_proba)
+    model.to(device)
 
     # Select optimizer
     if optimizer_name == 'Adam':
@@ -278,7 +286,8 @@ def objective(trial, train_dataloader, test_dataloader):
         loss_fn=loss_fn,
         epochs=10,
         device=device,
-        scheduler=scheduler
+        scheduler=scheduler,
+        trial=trial
     )
 
     # Save the model

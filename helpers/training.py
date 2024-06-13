@@ -5,9 +5,56 @@ from typing import Dict, List, Tuple
 from tqdm.auto import tqdm
 from torch.optim.lr_scheduler import StepLR
 
-def cross_entropy_one_hot(input, target):
-    _, labels = target.max(dim=1)
-    return F.cross_entropy(input, labels)
+import numpy as np
+import torch
+
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, patience=5, verbose=False, delta=0, path='checkpoint.pth'):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement.
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+            path (str): Path for the checkpoint to be saved to.
+                            Default: 'checkpoint.pt'
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.delta = delta
+        self.path = path
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+
+    def __call__(self, val_loss, model):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model):
+        '''Saves model when validation loss decreases.'''
+        if self.verbose:
+            print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
+        torch.save(model.state_dict(), self.path)
+        self.val_loss_min = val_loss
+
 
 def train_step(model: torch.nn.Module, 
                dataloader: torch.utils.data.DataLoader, 
@@ -157,7 +204,8 @@ def train(model: torch.nn.Module,
     device: torch.device, 
     writer_local: torch.utils.tensorboard.writer.SummaryWriter, 
     writer_drive: torch.utils.tensorboard.writer.SummaryWriter,
-    scheduler: torch.optim.lr_scheduler._LRScheduler = None
+    scheduler: torch.optim.lr_scheduler._LRScheduler = None, 
+    early_stopping: EarlyStopping = None
 ) -> Dict[str, List]:
     """Trains and tests a PyTorch model.
 
@@ -280,5 +328,12 @@ def train(model: torch.nn.Module,
         # Step the scheduler
         if scheduler:
             scheduler.step()
+
+        # Check early stopping
+        if early_stopping:
+            early_stopping(test_loss, model)
+            if early_stopping.early_stop:
+                print("[INFO] Early stopping")
+                break
 
     return results
