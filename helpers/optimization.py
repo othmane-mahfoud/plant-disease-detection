@@ -157,8 +157,8 @@ def train(model: torch.nn.Module,
     loss_fn: torch.nn.Module,
     epochs: int,
     device: torch.device, 
+    trial,
     scheduler: torch.optim.lr_scheduler._LRScheduler = None,
-    trial
 ) -> Dict[str, List]:
     """Trains and tests a PyTorch model.
 
@@ -286,8 +286,8 @@ def objective(trial, train_dataloader, test_dataloader):
         loss_fn=loss_fn,
         epochs=10,
         device=device,
+        trial=trial,
         scheduler=scheduler,
-        trial=trial
     )
 
     # Save the model
